@@ -4,6 +4,38 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 
+declare global {
+  interface Window {
+    Razorpay: RazorpayInstance;
+  }
+}
+
+interface RazorpayInstance {
+  new (options: RazorpayOptions): Razorpay;
+}
+
+interface Razorpay {
+  open(): void;
+}
+
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  handler(response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }): void;
+  prefill: {
+    name: string;
+    email: string;
+    contact: string;
+  };
+  theme: {
+    color: string;
+  };
+}
+
 const PaymentButton = () => {
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -42,14 +74,14 @@ const PaymentButton = () => {
         amount: amountInPaise,
       });
 
-      const options = {
+      const options: RazorpayOptions = {
         key: "your-test-key",
         amount: data.order.amount,
         currency: "INR",
         name: "Test Payment",
         description: "Test Transaction",
         order_id: data.order.id,
-        handler: async (response: any) => {
+        handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
           try {
             const verification = await axios.post(
               "http://localhost:8000/verify-payment",
@@ -76,7 +108,7 @@ const PaymentButton = () => {
         theme: { color: "#4F46E5" },
       };
 
-      const rzp = new (window as any).Razorpay(options);
+      const rzp = new window.Razorpay(options);
       rzp.open();
     } catch (error) {
       console.error("Error creating Razorpay order:", error);
